@@ -34,8 +34,7 @@ LOVE_QUOTES = [
 # Handler start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Halo, aku BucinBot 🤖 Siap bantu kamu jadi lebih bucin!
-"
+        "Halo, aku BucinBot 🤖 Siap bantu kamu jadi lebih bucin!\n"
         "Ketik /surat, /quotes, /rindu, /nembak, atau /puisi untuk mulai."
     )
 
@@ -113,15 +112,7 @@ async def main():
 
     print("Bot berjalan...")
 
-    # Fix untuk event loop yang sudah berjalan
-    try:
-        await app.run_polling()
-    except RuntimeError as e:
-        if "event loop is already running" in str(e):
-            import nest_asyncio
-            nest_asyncio.apply()
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(app.run_polling())
+    await app.run_polling()
 
 if __name__ == "__main__":
     import asyncio
@@ -129,4 +120,5 @@ if __name__ == "__main__":
 
     # Apply nest_asyncio to handle already running loop
     nest_asyncio.apply()
-    asyncio.run(main())
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
