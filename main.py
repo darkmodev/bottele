@@ -26,19 +26,19 @@ model = genai.GenerativeModel("gemini-1.5-flash")
 # Start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Halo! Aku BucinBot 💘\n"
-        "Gunakan /chatbucin untuk mulai ngobrol, dan /help untuk bantuan."
+        "hai sayangku cintaku cantiku 🥰💘\n"
+        "ango /chatbucin kango ngamimitian ngobrol, sareng /help pami peryogi bantosan."
     )
 
 # Help
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "📚 Bantuan Perintah:\n"
-        "/start - Mulai obrolan\n"
-        "/chatbucin - Ngobrol sama AI pacar bucin\n"
-        "/stopchat - Akhiri mode pacar bucin\n"
-        "/tipe - Ganti karakter pacar bucin\n"
-        "/help - Tampilkan bantuan"
+        "/start - hayu chatan\n"
+        "/chatbucin - chatan sareng kabogoh\n"
+        "/stopchat - atosan chatana☺️ \n"
+        "/tipe - Ganti karakter kabogoh \n"
+        "/help - kango babantos"
     )
 
 # Chat Bucin
@@ -46,23 +46,23 @@ async def chatbucin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["chat_bucin"] = True
     context.user_data["tipe"] = "manja"
     await update.message.reply_text(
-        "💖 Mode pacar bucin diaktifkan!\n"
-        "Ketik apa aja ke aku~\n"
-        "Gunakan /tipe untuk ganti karakter pacarku (manja, serius, humoris, cuek, penyayang, mesum)."
+        "💖 hoyong anu type anu kumaha cantik🥰!\n"
+        "manga bade nyarios naon sayangku😉~\n"
+        "ango /tipe kango ngagentos type nu kmaha (manja, serius, humoris, cuek, romantis, genit)."
     )
 
 # Ganti Tipe Pacar
 async def tipe(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [["manja", "serius"], ["humoris", "cuek"], ["penyayang", "mesum"]]
+    keyboard = [["manja", "serius"], ["humoris", "cuek"], ["romantis", "genit"]]
     await update.message.reply_text(
-        "Pilih tipe pacar bucin yang kamu mau:",
+        "pilihnya sesuai kahoyong typena😉 :",
         reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
     )
 
 # Stop Chat
 async def stopchat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["chat_bucin"] = False
-    await update.message.reply_text("💔 Mode pacar bucin dimatikan. Sampai jumpa lagi yaa~")
+    await update.message.reply_text("💔 kabogohna di paehan😁~")
 
 # Message Handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -70,7 +70,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if text in ["manja", "serius", "humoris", "cuek", "penyayang", "mesum"]:
         context.user_data["tipe"] = text
-        await update.message.reply_text(f"✅ Karakter pacar diubah ke: {text}")
+        await update.message.reply_text(f"✅ Karakter kabogoh di robih kana type: {text}")
         return
 
     if context.user_data.get("chat_bucin"):
@@ -83,7 +83,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(response.text.strip())
         except Exception as e:
             logger.error(e)
-            await update.message.reply_text("Lagi error nih sayang 😢")
+            await update.message.reply_text("nuju rieut kela kedapnya 😢")
 
 # Setup
 async def main():
