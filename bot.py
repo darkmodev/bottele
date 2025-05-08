@@ -1,4 +1,3 @@
-import logging
 import os
 from datetime import datetime
 from telegram import Update
@@ -10,79 +9,73 @@ from telegram.ext import (
     filters,
 )
 import google.generativeai as genai
+import logging
 
-# === CONFIGURATION ===
+# Load token dari environment variable
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-LOG_FILE = "chat_log.txt"
 
-# Setup Logging
+# Konfigurasi log
 logging.basicConfig(level=logging.INFO)
 
-# Setup Gemini AI
+# Konfigurasi Gemini
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel("gemini-pro")
 
-# Memory per user
+# Memory per pengguna
 user_histories = {}
 
-# === COMMAND HANDLERS ===
+# --- Command Handlers ---
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "👋 Halo! Saya adalah bot AI berbasis Gemini.\n"
-        "Ketik pertanyaanmu dan saya akan membantu.\n\n"
-        "Ketik /help untuk lihat perintah."
+        "Ketik pertanyaanmu dan saya akan bantu.\n\n"
+        "Perintah:\n/start - Mulai ulang\n/help - Bantuan\n/clear - Hapus memori"
     )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "🤖 Perintah yang tersedia:\n"
-        "/start - Mulai obrolan\n"
-        "/help - Tampilkan bantuan\n"
-        "/clear - Hapus ingatan obrolanmu"
+        "🆘 Bantuan Bot:\n/start - Mulai ulang bot\n/help - Tampilkan perintah\n/clear - Hapus ingatan obrolan"
     )
 
 async def clear_memory(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     user_histories.pop(user_id, None)
-    await update.message.reply_text("🧹 Ingatan obrolan kamu telah dihapus.")
+    await update.message.reply_text("✅ Ingatan obrolan kamu telah dihapus.")
 
-# === MESSAGE HANDLER ===
+# --- Pesan Biasa Handler ---
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     user_id = user.id
-    text = update.message.text
+    message = update.message.text
 
-    # Ambil histori user
     history = user_histories.get(user_id, [])
-    history.append({"role": "user", "parts": [text]})
+    history.append({"role": "user", "parts": [message]})
 
     try:
         response = model.generate_content(history)
-        answer = response.text.strip()
-        history.append({"role": "model", "parts": [answer]})
+        reply = response.text.strip()
+        history.append({"role": "model", "parts": [reply]})
+        user_histories[user_id] = history[-10:]  # Maksimal 10 pesan terakhir
 
-        # Simpan kembali (maks 10 interaksi)
-        user_histories[user_id] = history[-10:]
-
-        await update.message.reply_text(answer)
+        await update.message.reply_text(reply)
 
         # Logging ke file
-        with open(LOG_FILE, "a", encoding="utf-8") as f:
-            f.write(f"[{datetime.now()}] {user.full_name} ({user_id})\n")
-            f.write(f"You: {text}\nBot: {answer}\n\n")
+        with open("chat_log.txt", "a", encoding="utf-8") as log:
+            log.write(f"[{datetime.now()}] {user.full_name} ({user_id})\n")
+            log.write(f"You: {message}\nBot: {reply}\n\n")
 
     except Exception as e:
         logging.error(f"Error: {e}")
-        await update.message.reply_text("❌ Terjadi kesalahan, coba lagi nanti.")
+        await update.message.reply_text("⚠️ Maaf, terjadi kesalahan. Coba lagi nanti.")
 
-# === MAIN ===
+# --- Main App ---
 
 def main():
     if not TELEGRAM_TOKEN or not GEMINI_API_KEY:
-        raise EnvironmentError("❌ Token belum diset di environment variable.")
+        raise EnvironmentError("❌ Token belum diatur di environment variable.")
 
     app = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
