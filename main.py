@@ -23,7 +23,7 @@ GENAI_API_KEY = os.getenv("GENAI_API_KEY")
 
 # Konfigurasi Gemini API
 genai.configure(api_key=GENAI_API_KEY)
-model = genai.GenerativeModel("models/gemini-2.0-flash")
+model = genai.GenerativeModel("gemini-2.0-flash")
 
 # Daftar kutipan cinta
 LOVE_QUOTES = [
