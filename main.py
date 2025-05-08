@@ -1,96 +1,94 @@
 import os
 import logging
-import google.generativeai as genai
+import random
 from telegram import Update
-from telegram.ext import (ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters)
-import nest_asyncio
-import asyncio
-
-# Konfigurasi
-BOT_TOKEN = os.getenv("BOT_TOKEN")
-GENAI_API_KEY = os.getenv("GENAI_API_KEY")
+from telegram.ext import (ApplicationBuilder, CommandHandler, MessageHandler,
+                          ContextTypes, filters)
+import google.generativeai as genai
 
 # Konfigurasi logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Konfigurasi Gemini Flash
+# API Key dan Token dari environment variable
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+GENAI_API_KEY = os.getenv("GENAI_API_KEY")
+
+# Konfigurasi Gemini 2.0 Flash
 genai.configure(api_key=GENAI_API_KEY)
-model = genai.GenerativeModel(model_name="models/gemini-1.5-flash-latest")
+model = genai.GenerativeModel(model_name="models/gemini-1.5-flash")
 
-# Inisialisasi panggilan khusus pengguna
-user_nicknames = {}
-
-# Mood keywords
-MOOD_RESPONSES = {
-    "sedih": "Sayang jangan sedih ya, sini peluk dulu 🤗💕",
-    "senang": "Aku ikut senang dengarnya, sayang! 😘✨",
-    "marah": "Tenang ya, aku di sini buat nenangin kamu 😔💖",
-    "kesepian": "Aku selalu ada buat nemenin kamu, ayang... 🤍",
-    "capek": "Istirahat dulu ya, aku temenin di sini 😌🫶",
-    "bahagia": "Yey! Aku ikut bahagia dengar kabar baik dari kamu! 🎉💖"
-}
-
-# Start
+# ===== Handler Start dan Help =====
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Halo! Aku BucinBot 💘
-Gunakan /chatbucin untuk ngobrol ala pacar, dan /help untuk lihat semua perintah.")
+    await update.message.reply_text(
+        "Halo! Aku BucinBot 💘\nKetik /help untuk lihat fitur-fitur bucin yang tersedia."
+    )
 
-# Help
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("""
-❤️ Perintah BucinBot:
-/start - Mulai obrolan
-/help - Lihat daftar perintah
-/chatbucin - Ngobrol roleplay sama AI pacar
-/stopchat - Akhiri mode pacar bucin
-""")
+    help_text = (
+        "❤️ *Fitur BucinBot* ❤️\n"
+        "/start - Mulai obrolan\n"
+        "/help - Lihat semua fitur\n"
+        "/chatbucin - Mode pacar bucin roleplay\n"
+        "/stopchat - Keluar dari mode pacar\n"
+        "\nFitur spesial:\n"
+        "- Deteksi mood dari pesanmu\n"
+        "- Panggilan khusus dengan respons manja\n"
+        "- Simulasi suasana (seperti hujan, malam, dll)"
+    )
+    await update.message.reply_text(help_text, parse_mode="Markdown")
 
-# Mode Chat Bucin ON
+# ===== Chat Bucin Mode =====
 async def chatbucin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["chat_bucin"] = True
     await update.message.reply_text("💖 Mode pacar bucin diaktifkan! Ketik apa aja ke aku~")
 
-# Mode Chat Bucin OFF
 async def stopchat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["chat_bucin"] = False
     await update.message.reply_text("💔 Mode pacar bucin dimatikan. Kapan-kapan kita ngobrol lagi yaa...")
 
-# Deteksi Mood dan Panggilan Khusus
-async def chatbucin_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# ===== Chat Handler =====
+async def handle_chatbucin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("chat_bucin"):
-        user_id = update.effective_user.id
-        text = update.message.text.lower()
+        user_input = update.message.text.lower()
 
-        # Simpan panggilan khusus jika ada
-        if any(nick in text for nick in ["sayang", "ayang", "cinta", "beb"]):
-            for nick in ["sayang", "ayang", "cinta", "beb"]:
-                if nick in text:
-                    user_nicknames[user_id] = nick
+        # Fitur 1: Mood detector
+        mood_prompts = [
+            "senang", "sedih", "marah", "kesepian", "bahagia", "capek", "kesal"
+        ]
+        mood_detected = next((m for m in mood_prompts if m in user_input), None)
 
-        nickname = user_nicknames.get(user_id, "sayang")
+        # Fitur 2: Panggilan sayang
+        panggilan_khusus = ["sayang", "beb", "ayang", "cinta"]
+        panggilan = next((p for p in panggilan_khusus if p in user_input), None)
 
-        # Deteksi mood
-        for mood, response in MOOD_RESPONSES.items():
-            if mood in text:
-                await update.message.reply_text(response.replace("sayang", nickname))
-                return
+        # Fitur 3: Simulasi suasana
+        if "hujan" in user_input:
+            suasana = "Bayangin kita lagi pelukan sambil dengerin hujan, hangat banget..."
+        elif "malam" in user_input:
+            suasana = "Malam ini cuma kamu yang ada di pikiranku. Peluk dari jauh ya... 🥺"
+        else:
+            suasana = None
 
-        # Simulasi suasana (contoh sederhana)
-        if "hujan" in text:
-            await update.message.reply_text(f"Udara dingin ya {nickname}, sini aku peluk biar hangat ☔❤️")
-            return
+        # Prompt AI gabungan
+        prompt = "Jadilah pacar bucin yang perhatian dan manja."
+        if mood_detected:
+            prompt += f" Pasangannya sedang merasa {mood_detected}, hibur dia."
+        if panggilan:
+            prompt += f" Gunakan kata panggilan '{panggilan}' dalam balasan."
+        if suasana:
+            prompt += f" Tambahkan suasana: {suasana}"
 
-        # Jika tidak terdeteksi mood/suasana, lanjut ke AI
-        prompt = f"Kamu adalah pacar bucin yang romantis. Balas pesan ini dengan nada manja dan cinta: '{text}'"
+        prompt += f"\n\nBalas ini dengan gaya manja dan bucin: {user_input}"
+
         try:
             response = await model.generate_content_async([prompt])
             await update.message.reply_text(response.text.strip())
         except Exception as e:
             logger.error(e)
-            await update.message.reply_text("Maaf ya, AI-nya lagi error 😢")
+            await update.message.reply_text("Maaf, AI pacarmu lagi error 😢")
 
-# Main
+# ===== Main =====
 async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
@@ -98,11 +96,14 @@ async def main():
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("chatbucin", chatbucin))
     app.add_handler(CommandHandler("stopchat", stopchat))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, chatbucin_handler))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_chatbucin))
 
-    print("🤖 BucinBot berjalan...")
+    print("BucinBot berjalan...")
     await app.run_polling()
 
 if __name__ == "__main__":
+    import asyncio
+    import nest_asyncio
+
     nest_asyncio.apply()
     asyncio.run(main())
