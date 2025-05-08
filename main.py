@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GENAI_API_KEY = os.getenv("GENAI_API_KEY")
 
+# Konfigurasi Gemini
 genai.configure(api_key=GENAI_API_KEY)
 model = genai.GenerativeModel("gemini-1.5-flash")
 
@@ -67,7 +68,7 @@ async def chatbucin(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Stop Chat
 async def stopchat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["chat_bucin"] = False
-    await update.message.reply_text("💔 Mode pacar bucin dimatikan. Sampai jumpa lagi yaa~")
+    await update.message.reply_text("\ud83d\udc94 Mode pacar bucin dimatikan. Sampai jumpa lagi yaa~")
 
 # Chat Handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -86,7 +87,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text(response.text.strip())
         except Exception as e:
             logger.error(e)
-            await update.message.reply_text("Lagi error nih sayang 😢")
+            await update.message.reply_text("Lagi error nih sayang 😭")
     elif update.message.text in ["Indonesia", "Sunda"]:
         await set_bahasa(update, context)
 
@@ -107,4 +108,3 @@ async def main():
 if __name__ == "__main__":
     nest_asyncio.apply()
     asyncio.run(main())
-tesq
