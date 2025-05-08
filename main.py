@@ -1,8 +1,7 @@
 import os
 import logging
 import random
-import asyncio
-import nest_asyncio
+import google.generativeai as genai
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -11,96 +10,93 @@ from telegram.ext import (
     ContextTypes,
     filters,
 )
-from google import genai
+import nest_asyncio
+import asyncio
 
-# Konfigurasi logging
+# Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Mendapatkan token dan API key dari environment variables
+# Konfigurasi API
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GENAI_API_KEY = os.getenv("GENAI_API_KEY")
 
-# Konfigurasi Gemini API
+# Konfigurasi Gemini 2.0 Flash
 genai.configure(api_key=GENAI_API_KEY)
-model = genai.GenerativeModel("gemini-2.0-flash")
+model = genai.GenerativeModel("gemini-2.0-flash")  # Menggunakan Gemini 2.0 Flash
 
-# Daftar kutipan cinta
+# Quotes cinta
 LOVE_QUOTES = [
     "Cinta itu bukan tentang memiliki, tapi menghargai. 💞",
     "Aku nggak butuh alasan untuk mencintaimu. Kamu cukup jadi kamu. ❤️",
     "Jarak bukan masalah kalau hati tetap dekat. ✨",
-    "Kalau aku harus memilih antara napas dan kamu, aku akan pilih kamu. Karena kamu adalah hidupku. ��",
+    "Kalau aku harus memilih antara napas dan kamu, aku akan pilih kamu. Karena kamu adalah hidupku. 🫶",
 ]
 
-# Handler untuk perintah /start
+# ==================== HANDLERS ====================
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Halo, aku BucinBot 🤖 Siap bantu kamu jadi lebih bucin!\n"
-        "Ketik /surat, /quotes, /rindu, /nembak, /puisi, atau /help untuk mulai."
+        "Ketik /help untuk lihat semua fitur 💕"
     )
 
-# Handler untuk perintah /help
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Berikut adalah perintah yang tersedia:\n"
-        "/start - Memulai interaksi dengan bot\n"
-        "/surat - Membuat surat cinta dengan bantuan AI\n"
-        "/quotes - Menampilkan kutipan cinta acak\n"
-        "/rindu - Mengungkapkan rasa rindu\n"
-        "/nembak - Membantu menyatakan cinta\n"
-        "/puisi - Membuat puisi cinta dengan bantuan AI\n"
-        "/help - Menampilkan daftar perintah"
+        "💌 *Daftar Perintah BucinBot:*\n"
+        "/start - Mulai ngobrol\n"
+        "/surat - Buat surat cinta AI\n"
+        "/quotes - Dapatkan kutipan cinta\n"
+        "/rindu - Kirim pesan rindu\n"
+        "/nembak - Simulasi nembak pakai AI\n"
+        "/puisi - Buat puisi cinta AI\n",
+        parse_mode="Markdown"
     )
 
-# Handler untuk perintah /surat
+# Surat cinta
 async def surat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["awaiting_love_letter"] = True
-    await update.message.reply_text("Apa tema surat cintamu? Contoh: LDR, ulang tahun, patah hati...")
+    await update.message.reply_text("Apa tema surat cintamu? (Contoh: LDR, ulang tahun, patah hati...)")
 
-# Handler untuk perintah /quotes
-async def quotes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    quote = random.choice(LOVE_QUOTES)
-    await update.message.reply_text(f"💘 {quote}")
-
-# Handler untuk perintah /rindu
-async def rindu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Aku kangen kamu 😢 Tapi jarak ini cuma bikin aku makin cinta...")
-
-# Handler untuk perintah /nembak
-async def nembak(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Lagi nyiapin kata-kata buat nembak... ❤️‍🔥")
-    prompt = "Buatkan kata-kata romantis untuk menyatakan cinta pertama kali dalam bahasa Indonesia."
-    try:
-        response = await model.generate_content_async(prompt)
-        teks = response.text.strip()
-        await update.message.reply_text(teks)
-    except Exception as e:
-        logger.error(e)
-        await update.message.reply_text("AI lagi bingung nulisnya 😅 Coba nanti lagi ya!")
-
-# Handler untuk perintah /puisi
-async def puisi(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["awaiting_puisi"] = True
-    await update.message.reply_text("Ketik topik puisi cintamu. Misalnya: hujan, senyuman, malam...")
-
-# Handler untuk menangani input tema surat cinta
 async def handle_love_letter_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("awaiting_love_letter"):
         topic = update.message.text
         context.user_data["awaiting_love_letter"] = False
-        await update.message.reply_text("Sedang menulis surat cinta AI... 💌")
+        await update.message.reply_text("Sedang menulis surat cinta... 💌")
 
         prompt = f"Buatkan surat cinta romantis dalam bahasa Indonesia dengan tema: {topic}."
         try:
-            response = await model.generate_content_async(prompt)
-            letter = response.text.strip()
-            await update.message.reply_text(letter)
+            response = await model.generate_content_async([prompt])
+            await update.message.reply_text(response.text.strip())
         except Exception as e:
             logger.error(e)
-            await update.message.reply_text("Maaf, AI gagal bikin suratnya 😥 Coba lagi ya!")
+            await update.message.reply_text("Maaf, AI gagal bikin suratnya 😢 Coba lagi ya!")
 
-# Handler untuk menangani input tema puisi
+# Quotes cinta
+async def quotes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    quote = random.choice(LOVE_QUOTES)
+    await update.message.reply_text(f"💘 {quote}")
+
+# Rindu
+async def rindu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Aku kangen kamu 😢 Tapi jarak ini cuma bikin aku makin cinta...")
+
+# Nembak
+async def nembak(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Lagi nyiapin kata-kata buat nembak... ❤️‍🔥")
+    prompt = "Buatkan kata-kata romantis untuk menyatakan cinta pertama kali dalam bahasa Indonesia."
+    try:
+        response = await model.generate_content_async([prompt])
+        await update.message.reply_text(response.text.strip())
+    except Exception as e:
+        logger.error(e)
+        await update.message.reply_text("AI lagi bingung nulisnya 😅 Coba nanti lagi ya!")
+
+# Puisi cinta
+async def puisi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["awaiting_puisi"] = True
+    await update.message.reply_text("Ketik topik puisi cintamu. Misalnya: hujan, senyuman, malam...")
+
 async def handle_puisi_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("awaiting_puisi"):
         topic = update.message.text
@@ -109,17 +105,17 @@ async def handle_puisi_topic(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         prompt = f"Buatkan puisi cinta dalam bahasa Indonesia dengan tema '{topic}'."
         try:
-            response = await model.generate_content_async(prompt)
+            response = await model.generate_content_async([prompt])
             await update.message.reply_text(response.text.strip())
         except Exception as e:
             logger.error(e)
             await update.message.reply_text("Puisi gagal dibuat. AI lagi galau 😅")
 
-# Fungsi utama untuk menjalankan bot
+# ==================== MAIN ====================
+
 async def main():
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    # Menambahkan handler untuk setiap perintah
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("surat", surat))
@@ -127,15 +123,13 @@ async def main():
     app.add_handler(CommandHandler("rindu", rindu))
     app.add_handler(CommandHandler("nembak", nembak))
     app.add_handler(CommandHandler("puisi", puisi))
-
-    # Menambahkan handler untuk menangani input teks
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_love_letter_topic))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_puisi_topic))
 
     print("Bot berjalan...")
-
     await app.run_polling()
 
+# Untuk Jupyter/Colab/docker
 if __name__ == "__main__":
     nest_asyncio.apply()
     asyncio.run(main())
