@@ -45,6 +45,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/poem - Buat puisi cinta\n"
         "/countdown - Hitung hari penting\n"
         "/mood - Catat mood anjeun ayeuna\n"
+        "/cerita - Dengekeun dongeng cinta\n"
         "/help - kango babantos"
     )
 
@@ -90,11 +91,11 @@ async def poem(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Countdown
 async def countdown(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    target_date = datetime(2025, 6, 14)  # Ganti sesuai tanggal spesial
+    target_date = datetime(2025, 6, 14)
     now = datetime.now()
     days_left = (target_date - now).days
     if days_left >= 0:
-        await update.message.reply_text(f"📅 Tersisa {days_left} hari menuju hari jadian kita! 🥰")
+        await update.message.reply_text(f"🗕️ Tersisa {days_left} hari menuju hari jadian kita! 🥰")
     else:
         await update.message.reply_text("🎉 Hari jadian kita sudah lewat tapi cintaku ka anjeun mah langgeng 😘")
 
@@ -104,14 +105,39 @@ async def mood(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("📝 Kumaha mood anjeun ayeuna cantik? (senang, sedih, lelah, semangat...)")
     context.user_data["awaiting_mood"] = True
 
+# Cerita Romantis / Lucu
+async def cerita(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    tipe = context.user_data.get("tipe", "romantis")
+    prompt = (
+        f"Buatkan cerita pendek tentang pasangan kekasih, dengan gaya {tipe}. "
+        f"Ceritanya bisa lucu, romantis, atau manis. Cerita harus original, menyentuh hati, dan menggunakan bahasa yang akrab dan ringan. "
+        f"Gunakan gaya mengalir seperti kamu sedang ngobrol bareng pacar kamu sambil bercerita."
+    )
+    try:
+        response = await model.generate_content_async(prompt)
+        await update.message.reply_text(response.text.strip())
+    except Exception as e:
+        logger.error(e)
+        await update.message.reply_text("🥺 Ceritana gagal muncul... cobakeun engké deui.")
+
 # Message Handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.lower()
 
     if context.user_data.get("awaiting_mood"):
-        user_moods[update.effective_user.id] = text
         context.user_data["awaiting_mood"] = False
-        await update.message.reply_text(f"❤️ Mood kamu '{text}' disimpen. Nuhun udah curhat yaa 😚")
+        tipe = context.user_data.get("tipe", "romantis")
+        prompt = (
+            f"Kamu adalah pacar yang {tipe}. Pasanganmu sedang curhat tentang mood hari ini: '{text}'. "
+            f"Tanggapi dengan penuh perhatian, kasih sayang, dan dukungan. Gunakan bahasa pacaran, jangan terlalu formal. "
+            f"Bikin dia merasa dipahami, nyaman, dan disayang. Tambahkan emoji agar terasa hangat."
+        )
+        try:
+            response = await model.generate_content_async(prompt)
+            await update.message.reply_text(response.text.strip())
+        except Exception as e:
+            logger.error(e)
+            await update.message.reply_text("😢 Gagal bacain mood kamu sayang... cobakeun engké deui.")
         return
 
     if text in ["manja", "serius", "humoris", "cuek", "penyayang", "genit"]:
@@ -149,6 +175,7 @@ async def main():
     app.add_handler(CommandHandler("poem", poem))
     app.add_handler(CommandHandler("countdown", countdown))
     app.add_handler(CommandHandler("mood", mood))
+    app.add_handler(CommandHandler("cerita", cerita))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("Bot berjalan...")
