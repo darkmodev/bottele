@@ -32,15 +32,21 @@ async def handle_chat(message: types.Message):
         return
 
     try:
-        # Menggunakan OpenRouter GPT-4 untuk mengirimkan pesan
+        # Menangani komunikasi dengan API OpenAI
         response = openai.ChatCompletion.create(
-            model="gpt-4",  # Menggunakan model GPT-4 yang valid
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": message.text}
-            ]
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": message.text}]
         )
-        await message.reply(response['choices'][0]['message']['content'])
+        
+        # Log untuk memeriksa respons dari API
+        print(response)  # Mencetak respons untuk debugging
+
+        # Mengambil jawaban dari pilihan pertama dalam respons
+        chat_response = response['choices'][0]['message']['content']
+        await message.reply(chat_response)
+    
+    except KeyError as e:
+        await message.reply(f"Terjadi kesalahan dalam pengambilan data: {str(e)}")
     except Exception as e:
         await message.reply(f"Terjadi kesalahan: {str(e)}")
 
