@@ -1,175 +1,105 @@
-import json
+import requests
 import os
 import logging
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
-import random
-import nest_asyncio
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Path untuk menyimpan data user
-USER_DATA_FILE = "user_data.json"
+# Token API Telegram
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
-# Fungsi untuk memuat data dari file JSON
-def load_user_data():
-    if os.path.exists(USER_DATA_FILE):
-        with open(USER_DATA_FILE, 'r') as f:
-            return json.load(f)
-    else:
-        return {}
+# Token API Gemini 2.0 Flash (harus diganti dengan API key yang benar)
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_URL = "https://gemini.googleapis.com/v1beta2/projects/your-project-id/models/gemini2.0flash:predict"
 
-# Fungsi untuk menyimpan data ke file JSON
-def save_user_data(user_data):
-    with open(USER_DATA_FILE, 'w') as f:
-        json.dump(user_data, f, indent=4)
-
-# Mendapatkan data user (atau buat baru jika belum ada)
-def get_user_data(user_id):
-    user_data = load_user_data()
-    if str(user_id) not in user_data:
-        user_data[str(user_id)] = {
-            "nama_panggilan": "",
-            "tipe_chat": "manja",  # default tipe chat
-            "mood": "baik",  # default mood
-            "bahasa": "id"  # default bahasa adalah Bahasa Indonesia
+# Fungsi untuk berkomunikasi dengan API Gemini 2.0 Flash
+async def get_ai_response(user_message: str):
+    try:
+        headers = {
+            'Authorization': f'Bearer {GEMINI_API_KEY}',
+            'Content-Type': 'application/json',
         }
-        save_user_data(user_data)
-    return user_data[str(user_id)]
 
-# Simpan nama panggilan user
-def save_nama_panggilan(user_id, nama_panggilan):
-    user_data = load_user_data()
-    user_data[str(user_id)]["nama_panggilan"] = nama_panggilan
-    save_user_data(user_data)
+        data = {
+            "instances": [
+                {
+                    "input": user_message
+                }
+            ]
+        }
 
-# Simpan tipe chat user
-def save_tipe_chat(user_id, tipe_chat):
-    user_data = load_user_data()
-    user_data[str(user_id)]["tipe_chat"] = tipe_chat
-    save_user_data(user_data)
+        response = requests.post(GEMINI_API_URL, json=data, headers=headers)
+        response.raise_for_status()
+        ai_response = response.json()['predictions'][0]['output']
+        return ai_response.strip()
+    except Exception as e:
+        logger.error(f"Error saat memanggil API Gemini: {e}")
+        return "Maaf, saya mengalami masalah saat mencoba merespon. Coba lagi nanti."
 
-# Simpan mood user
-def save_mood(user_id, mood):
-    user_data = load_user_data()
-    user_data[str(user_id)]["mood"] = mood
-    save_user_data(user_data)
+# Fitur Chat Bucin dengan model AI (Gemini 2.0 Flash)
+async def handle_chatbucin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_data = context.user_data
+    if "chat_bucin" in user_data and user_data["chat_bucin"]:
+        user_message = update.message.text
 
-# Simpan bahasa user
-def save_bahasa(user_id, bahasa):
-    user_data = load_user_data()
-    user_data[str(user_id)]["bahasa"] = bahasa
-    save_user_data(user_data)
+        ai_response = await get_ai_response(user_message)
+        await update.message.reply_text(ai_response)
 
-# Fungsi untuk memilih bahasa
-def get_bahasa(user_id):
-    user_data = get_user_data(user_id)
-    return user_data["bahasa"]
-
-# Handler start
+# Handler Start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Halo! Aku BucinBot 💘\nKetik /help untuk melihat daftar perintah.")
+    await update.message.reply_text(
+        "Halo! Aku BucinBot 💘\n\n"
+        "Aku bisa bantu kamu jadi lebih bucin! Berikut adalah beberapa perintah yang bisa kamu coba:\n"
+        "/chatbucin - Ngobrol sama pacar AI\n"
+        "/stopchat - Matikan mode pacar AI\n"
+        "/help - Lihat bantuan lagi"
+    )
 
-# Handler /help
+# Handler Help
 async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("""
-    Berikut adalah beberapa perintah yang bisa kamu gunakan:
-    /start - Mulai obrolan
-    /help - Menampilkan daftar perintah
-    /chatbucin - Ngobrol dengan AI pacar
-    /stopchat - Menghentikan mode pacar bucin
-    /setnama - Menyetting nama panggilanmu
-    /settipechat - Menyetting tipe chat (manja, serius, humoris, dll)
-    /setmood - Menyetting mood (baik, buruk, senang, dsb)
-    /setbahasa - Menyetting bahasa yang digunakan (id untuk Bahasa Indonesia, su untuk Bahasa Sunda)
-    """)
+    await update.message.reply_text(
+        "Berikut adalah beberapa perintah yang bisa kamu gunakan:\n"
+        "/chatbucin - Ngobrol sama pacar AI\n"
+        "/stopchat - Matikan mode pacar AI\n"
+        "/help - Lihat bantuan ini lagi"
+    )
 
-# Handler untuk set bahasa
-async def setbahasa(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Pilih bahasa yang digunakan: id (Bahasa Indonesia) atau su (Bahasa Sunda).")
-    
-    context.user_data["awaiting_bahasa"] = True
-
-# Handler untuk menerima bahasa
-async def handle_bahasa(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("awaiting_bahasa"):
-        bahasa = update.message.text.lower()
-        if bahasa not in ["id", "su"]:
-            await update.message.reply_text("Bahasa yang kamu pilih tidak tersedia. Pilih antara: id (Bahasa Indonesia) atau su (Bahasa Sunda).")
-        else:
-            user_id = update.message.from_user.id
-            save_bahasa(user_id, bahasa)
-            context.user_data["awaiting_bahasa"] = False
-            await update.message.reply_text(f"Bahasa yang kamu pilih sekarang adalah {bahasa}.")
-
-# Handler untuk chat bucin
+# Fitur Chat Bucin
 async def chatbucin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    user_data = get_user_data(user_id)
-    
-    # Mengambil tipe chat dan mood user
-    tipe_chat = user_data["tipe_chat"]
-    mood = user_data["mood"]
-    bahasa = get_bahasa(user_id)
-    
-    # Respons sesuai dengan bahasa
-    if bahasa == "id":
-        if mood == "baik":
-            response = "Aku senang banget bisa ngobrol sama kamu! 💕 Apa kabar?"
-        elif mood == "buruk":
-            response = "Aku bisa bantu buat kamu merasa lebih baik, gimana kalau ngobrolin sesuatu yang menyenangkan?"
-        else:
-            response = "Apa kabar? Aku siap menemanimu 😊"
-        
-        if tipe_chat == "manja":
-            response += " 💖 Aku rindu banget sama kamu~"
-        elif tipe_chat == "serius":
-            response += " Kita harus punya rencana untuk masa depan."
-        elif tipe_chat == "humoris":
-            response += " Hahaha, aku punya banyak cerita lucu untuk kamu! 😂"
-        elif tipe_chat == "cuek tapi perhatian":
-            response += " Aku cuma pengen tahu kamu baik-baik aja, nggak lebih."
-        elif tipe_chat == "penyayang":
-            response += " Aku selalu sayang sama kamu, jangan ragu buat cerita yaa~"
-    
-    elif bahasa == "su":
-        if mood == "baik":
-            response = "Senang pisan bisa ngobrol sareng anjeun! 💕 Kumaha kabarna?"
-        elif mood == "buruk":
-            response = "Kuring tiasa ngabantosan supados anjeun ngarasa langkung saé, kumaha upami ngobrolkeun hal anu pikabungaheun?"
-        else:
-            response = "Kumaha kabarna? Kuring siap ngiringan anjeun 😊"
-        
-        if tipe_chat == "manja":
-            response += " 💖 Kuring sono pisan ka anjeun~"
-        elif tipe_chat == "serius":
-            response += " Urang kedah gaduh rencana pikeun masa depan."
-        elif tipe_chat == "humoris":
-            response += " Hahaha, kuring gaduh seueur carita lucu pikeun anjeun! 😂"
-        elif tipe_chat == "cuek tapi perhatian":
-            response += " Kuring ngan ukur hoyong terang yén anjeun saé, henteu langkung."
-        elif tipe_chat == "penyayang":
-            response += " Kuring sok bogoh ka anjeun, ulah ragu pikeun carita yaa~"
-    
-    await update.message.reply_text(response)
+    context.user_data["chat_bucin"] = True
+    await update.message.reply_text("💖 Mode pacar bucin diaktifkan! Ketik apa aja ke aku~")
+
+async def stopchat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["chat_bucin"] = False
+    await update.message.reply_text("💔 Mode pacar bucin dimatikan. Kapan-kapan kita ngobrol lagi yaa...")
 
 # Main bot
 async def main():
-    app = ApplicationBuilder().token("YOUR_BOT_TOKEN").build()
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help))
     app.add_handler(CommandHandler("chatbucin", chatbucin))
-    app.add_handler(CommandHandler("setbahasa", setbahasa))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_bahasa))
+    app.add_handler(CommandHandler("stopchat", stopchat))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_chatbucin))
 
     print("Bot berjalan...")
 
     await app.run_polling()
 
 if __name__ == "__main__":
-import nest_asyncio
-import asyncio
-
+    import asyncio
+    # Apply nest_asyncio to handle already running loop
+    import nest_asyncio
+    nest_asyncio.apply()
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(main())
