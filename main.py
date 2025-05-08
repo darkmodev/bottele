@@ -37,22 +37,22 @@ user_states = {}
 
 # Start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Halo, aku BucinBot 🤖 Siap bantu kamu jadi lebih bucin!\nKetik /help untuk lihat semua fitur 💕")
+    await update.message.reply_text("Halo sayangku 😘 pami gabutmah kadie we nya cantik\nKetik /help untuk lihat semua fitur 💕")
 
 # Help
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "💌 *Daftar Perintah BucinBot:*\n"
+        "💌 *Daftar Perintah Bot sayang:*\n"
         "/start - Mulai ngobrol\n"
         "/help - Lihat menu bantuan\n"
-        "/surat - Tulis surat cinta AI\n"
-        "/quotes - Dapatkan kutipan cinta acak (dari AI atau kekasih)\n"
-        "/rindu - Ekspresikan rasa rindu (dari AI atau kekasih)\n"
+        "/surat - Tulis surat cinta \n"
+        "/quotes - Dapatkan kutipan cinta acak \n"
+        "/rindu - Ekspresikan rasa rindu \n"
         "/nembak - Kata-kata untuk menyatakan cinta\n"
-        "/puisi - Buat puisi cinta AI\n"
+        "/puisi - Buat puisi cinta \n"
         "/chatbucin - Ngobrol roleplay sama AI pacar\n"
         "/stopchat - Akhiri mode pacar bucin\n"
-        "/diary - Tulis isi hati dan dapatkan respon dari AI\n",
+        "/diary - Tulis isi hati\n",
         parse_mode="Markdown"
     )
 
@@ -65,8 +65,8 @@ async def handle_love_letter_topic(update: Update, context: ContextTypes.DEFAULT
     if context.user_data.get("awaiting_love_letter"):
         context.user_data["awaiting_love_letter"] = False
         topic = update.message.text
-        await update.message.reply_text("Sedang menulis surat cinta... 💌")
-        prompt = f"Buatkan surat cinta romantis dalam bahasa Indonesia dengan tema: {topic}."
+        await update.message.reply_text("ngetik hela kedapnya cantik 🥰💌")
+        prompt = f"Buatkan surat cinta romantis dalam bahasa Indonesia tambahkan tanda tangan kekasih tercinta dan penerima dengan nama eca nur aisyah kekasihku dengan tema: {topic}."
         response = await model.generate_content_async([prompt])
         await update.message.reply_text(response.text.strip())
 
@@ -105,18 +105,31 @@ async def handle_puisi_topic(update: Update, context: ContextTypes.DEFAULT_TYPE)
         context.user_data["awaiting_puisi"] = False
         topic = update.message.text
         await update.message.reply_text("Menulis puisi cinta... ✍️")
-        prompt = f"Buatkan puisi cinta romantis bertema '{topic}' dalam bahasa Indonesia."
+        prompt = f"Buatkan puisi cinta romantis bertema '{topic}' dalam bahasa Indonesia yang pendek tapi romantis."
         response = await model.generate_content_async([prompt])
         await update.message.reply_text(response.text.strip())
 
-# Chat Bucin
+# /chatbucin - Aktifkan mode pacar bucin
 async def chatbucin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["chat_bucin"] = True
     await update.message.reply_text("💖 Mode pacar bucin diaktifkan! Ketik apa aja ke aku~")
 
+# /stopchat - Nonaktifkan mode pacar bucin
 async def stopchat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["chat_bucin"] = False
     await update.message.reply_text("💔 Mode pacar bucin dimatikan. Kapan-kapan kita ngobrol lagi yaa...")
+
+# Menangani semua pesan teks untuk chat bucin
+async def handle_chatbucin(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("chat_bucin", False):
+        user_text = update.message.text
+        prompt = f"Kamu adalah pacar bucin yang sangat romantis. Balas pesan ini dengan penuh cinta: {user_text}"
+        try:
+            response = await model.generate_content_async(prompt)
+            ai_reply = response.text.strip()
+            await update.message.reply_text(ai_reply)
+        except Exception as e:
+            await update.message.reply_text("Lagi bingung jawabnya 😅 coba lagi bentar ya!")
 
 # Diary
 async def diary(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -147,6 +160,9 @@ async def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_love_letter_topic))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_puisi_topic))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_diary))
+    app.add_handler(CommandHandler("chatbucin", chatbucin))
+    app.add_handler(CommandHandler("stopchat", stopchat))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_chatbucin))
 
     print("Bot berjalan...")
     await app.run_polling()
