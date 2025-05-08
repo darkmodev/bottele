@@ -10,6 +10,7 @@ from telegram.ext import (
     filters,
 )
 import random
+import nest_asyncio
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -33,7 +34,8 @@ LOVE_QUOTES = [
 # Handler start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Halo, aku BucinBot 🤖 Siap bantu kamu jadi lebih bucin!\n"
+        "Halo, aku BucinBot 🤖 Siap bantu kamu jadi lebih bucin!
+"
         "Ketik /surat, /quotes, /rindu, /nembak, atau /puisi untuk mulai."
     )
 
@@ -110,8 +112,21 @@ async def main():
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_puisi_topic))
 
     print("Bot berjalan...")
-    await app.run_polling()
+
+    # Fix untuk event loop yang sudah berjalan
+    try:
+        await app.run_polling()
+    except RuntimeError as e:
+        if "event loop is already running" in str(e):
+            import nest_asyncio
+            nest_asyncio.apply()
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(app.run_polling())
 
 if __name__ == "__main__":
     import asyncio
+    import nest_asyncio
+
+    # Apply nest_asyncio to handle already running loop
+    nest_asyncio.apply()
     asyncio.run(main())
