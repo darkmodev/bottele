@@ -21,7 +21,7 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 GENAI_API_KEY = os.getenv("GENAI_API_KEY")
 
 genai.configure(api_key=GENAI_API_KEY)
-model = genai.GenerativeModel("gemini-pro")
+model = genai.GenerativeModel("gemini-2.0-flash")  # Pastikan menggunakan model yang benar
 
 # Quotes cinta
 LOVE_QUOTES = [
@@ -52,11 +52,11 @@ async def handle_love_letter_topic(update: Update, context: ContextTypes.DEFAULT
 
         prompt = f"Buatkan surat cinta romantis dalam bahasa Indonesia dengan tema: {topic}."
         try:
-            response = await model.generate_content_async(prompt)
+            response = await model.generate_content_async(prompt)  # Pastikan ini sesuai dengan API
             letter = response.text.strip()
             await update.message.reply_text(letter)
         except Exception as e:
-            logger.error(e)
+            logger.error(f"Error: {e}")
             await update.message.reply_text("Maaf, AI gagal bikin suratnya 😢 Coba lagi ya!")
 
 # Quotes cinta acak
@@ -73,7 +73,7 @@ async def nembak(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Lagi nyiapin kata-kata buat nembak... ❤️‍🔥")
     prompt = "Buatkan kata-kata romantis untuk menyatakan cinta pertama kali dalam bahasa Indonesia."
     try:
-        response = await model.generate_content_async(prompt)
+        response = await model.generate_content_async(prompt)  # Pastikan ini sesuai dengan API
         teks = response.text.strip()
         await update.message.reply_text(teks)
     except Exception as e:
@@ -92,7 +92,7 @@ async def handle_puisi_topic(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
         prompt = f"Buatkan puisi cinta dalam bahasa Indonesia dengan tema '{topic}'."
         try:
-            response = await model.generate_content_async(prompt)
+            response = await model.generate_content_async(prompt)  # Pastikan ini sesuai dengan API
             await update.message.reply_text(response.text.strip())
         except Exception as e:
             await update.message.reply_text("Puisi gagal dibuat. AI lagi galau 😅")
