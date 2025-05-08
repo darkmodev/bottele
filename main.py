@@ -126,17 +126,19 @@ async def handle_diary(update: Update, context: ContextTypes.DEFAULT_TYPE):
         response = await model.generate_content_async([prompt])
         await update.message.reply_text("💌 Catatan tersimpan! Ini balasan buat kamu:\n" + response.text.strip())
 
+# Fitur mood
 async def mood(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["awaiting_mood"] = True
-    await update.message.reply_text("Lagi mood apa kamu hari ini? Ceritain dong...")
+    await update.message.reply_text("Ceritakan tentang moodmu, dan biar aku bantu nenangin 💗")
 
-async def handle_mood(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("awaiting_mood"):
-        context.user_data["awaiting_mood"] = False
-        mood = update.message.text
-        prompt = f"Aku lagi merasa: {mood}. Tolong bantu hibur dan semangatin aku dengan kata-kata penuh cinta."
-        response = await model.generate_content_async([prompt])
+    # Mengambil cerita mood dan menanggapi dengan AI
+    user_mood = update.message.text
+    prompt = f"Bantu pacarku menenangkan dia yang sedang moodnya: {user_mood}. Buat pesan yang menenangkan dan penuh cinta."
+
+    try:
+        response = await model.generate_content_async(prompt)
         await update.message.reply_text(response.text.strip())
+    except Exception as e:
+        await update.message.reply_text("Maaf, AI gagal nenangin mood kamu 😞 Coba lagi nanti ya!")
 
 async def tebakperasaan(update: Update, context: ContextTypes.DEFAULT_TYPE):
     prompt = "Kamu adalah AI yang bisa membaca hati. Buat tebakan lucu dan romantis tentang isi hati user."
