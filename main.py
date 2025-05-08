@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 GENAI_API_KEY = os.getenv("GENAI_API_KEY")
 
-# Konfigurasi Gemini
 genai.configure(api_key=GENAI_API_KEY)
 model = genai.GenerativeModel("gemini-1.5-flash")
 
@@ -28,7 +27,7 @@ model = genai.GenerativeModel("gemini-1.5-flash")
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Halo! Aku BucinBot 💘\n"
-        "Gunakan /chatbucin untuk mulai ngobrol, /bahasa untuk ganti bahasa, dan /help untuk bantuan."
+        "Gunakan /chatbucin untuk mulai ngobrol, dan /help untuk bantuan."
     )
 
 # Help
@@ -38,58 +37,53 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/start - Mulai obrolan\n"
         "/chatbucin - Ngobrol sama AI pacar bucin\n"
         "/stopchat - Akhiri mode pacar bucin\n"
-        "/bahasa - Pilih bahasa (Indonesia atau Sunda)\n"
+        "/tipe - Ganti karakter pacar bucin\n"
         "/help - Tampilkan bantuan"
     )
-
-# Pilih Bahasa
-async def bahasa(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    keyboard = [["Indonesia", "Sunda"]]
-    await update.message.reply_text(
-        "Pilih bahasa yang kamu inginkan:",
-        reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
-    )
-
-async def set_bahasa(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message.text in ["Indonesia", "Sunda"]:
-        context.user_data["language"] = update.message.text
-        await update.message.reply_text(f"Bahasa diatur ke {update.message.text}!")
 
 # Chat Bucin
 async def chatbucin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["chat_bucin"] = True
-    context.user_data["tipe"] = "manja"  # default tipe
+    context.user_data["tipe"] = "manja"
     await update.message.reply_text(
         "💖 Mode pacar bucin diaktifkan!\n"
         "Ketik apa aja ke aku~\n"
-        "Kamu bisa ganti karakter pacarku nanti (manja, serius, humoris, cuek, penyayang, mesum)"
+        "Gunakan /tipe untuk ganti karakter pacarku (manja, serius, humoris, cuek, penyayang, mesum)."
+    )
+
+# Ganti Tipe Pacar
+async def tipe(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [["manja", "serius"], ["humoris", "cuek"], ["penyayang", "mesum"]]
+    await update.message.reply_text(
+        "Pilih tipe pacar bucin yang kamu mau:",
+        reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
     )
 
 # Stop Chat
 async def stopchat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["chat_bucin"] = False
-    await update.message.reply_text("\ud83d\udc94 Mode pacar bucin dimatikan. Sampai jumpa lagi yaa~")
+    await update.message.reply_text("💔 Mode pacar bucin dimatikan. Sampai jumpa lagi yaa~")
 
-# Chat Handler
+# Message Handler
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.lower()
+
+    if text in ["manja", "serius", "humoris", "cuek", "penyayang", "mesum"]:
+        context.user_data["tipe"] = text
+        await update.message.reply_text(f"✅ Karakter pacar diubah ke: {text}")
+        return
+
     if context.user_data.get("chat_bucin"):
         pesan = update.message.text
         tipe = context.user_data.get("tipe", "manja")
-        bahasa = context.user_data.get("language", "Indonesia")
-
-        if bahasa == "Sunda":
-            prompt = f"Jieun obrolan pacar bucin nu gaya {tipe} kana pesen ieu: '{pesan}' dina Basa Sunda."
-        else:
-            prompt = f"Balas sebagai pacar {tipe} terhadap pesan ini: '{pesan}' dalam gaya romantis dan bucin."
+        prompt = f"Balas sebagai pacar {tipe} terhadap pesan ini: '{pesan}' dalam gaya romantis dan bucin."
 
         try:
             response = await model.generate_content_async(prompt)
             await update.message.reply_text(response.text.strip())
         except Exception as e:
             logger.error(e)
-            await update.message.reply_text("Lagi error nih sayang 😭")
-    elif update.message.text in ["Indonesia", "Sunda"]:
-        await set_bahasa(update, context)
+            await update.message.reply_text("Lagi error nih sayang 😢")
 
 # Setup
 async def main():
@@ -99,7 +93,7 @@ async def main():
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("chatbucin", chatbucin))
     app.add_handler(CommandHandler("stopchat", stopchat))
-    app.add_handler(CommandHandler("bahasa", bahasa))
+    app.add_handler(CommandHandler("tipe", tipe))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("Bot berjalan...")
