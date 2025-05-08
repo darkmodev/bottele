@@ -5,8 +5,8 @@ import google.generativeai as genai
 from datetime import datetime
 
 # Konfigurasi Token
-TELEGRAM_TOKEN = 'YOUR_TELEGRAM_BOT_TOKEN'
-GEMINI_API_KEY = 'YOUR_GEMINI_API_KEY'
+TELEGRAM_TOKEN = '8188514828:AAH08HULWLD1Vynei3YNqru6CelyMXmmK34'
+GEMINI_API_KEY = 'AIzaSyDHXbT7tTUbvMBB2gExDnJu66A6vxFn6iE'
 
 # Memory obrolan per user
 user_histories = {}
