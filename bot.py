@@ -1,4 +1,3 @@
-# bot.py
 import os
 import logging
 import datetime
@@ -14,9 +13,13 @@ logging.basicConfig(level=logging.INFO)
 
 # Inisialisasi bot
 API_TOKEN = os.getenv("API_TOKEN")
-openai.api_key = os.getenv("OPENAI_API_KEY")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")  # OpenRouter API key
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
+
+# Konfigurasi OpenRouter API
+openai.api_key = OPENROUTER_API_KEY
+openai.api_base = "https://openrouter.ai/api/v1"  # Base URL untuk OpenRouter API
 
 # ===== FITUR CHAT AI =====
 @dp.message(Command("chat"))
@@ -27,16 +30,32 @@ async def ai_chat(message: types.Message):
 async def handle_chat(message: types.Message):
     if message.text.startswith("/chat"):
         return
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[{"role": "user", "content": message.text}]
-    )
-    await message.reply(response.choices[0].message.content)
+
+    try:
+        # Menggunakan OpenRouter GPT-4 untuk mengirimkan pesan
+        response = openai.ChatCompletion.create(
+            model="openrouter/openai/gpt-4-turbo",  # Model OpenRouter GPT-4 Turbo
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": message.text}
+            ]
+        )
+        await message.reply(response['choices'][0]['message']['content'])
+    except Exception as e:
+        await message.reply(f"Terjadi kesalahan: {str(e)}")
 
 # ===== FITUR MATEMATIKA =====
 @dp.message(Command("math"))
 async def handle_math(message: types.Message):
     await message.reply("Ketik soal matematika yang ingin kamu selesaikan.")
+
+@dp.message(lambda message: message.text and message.text.isdigit())
+async def solve_math(message: types.Message):
+    try:
+        result = eval(message.text)  # Eksekusi soal matematika
+        await message.reply(f"Hasil: {result}")
+    except Exception as e:
+        await message.reply("Terjadi kesalahan dalam perhitungan.")
 
 # ===== FITUR TRANSLATE =====
 @dp.message(Command("translate"))
