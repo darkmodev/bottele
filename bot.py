@@ -106,7 +106,31 @@ async def fiqih_wanita(message: types.Message):
 # ===== START BOT =====
 @dp.message(Command("start"))
 async def start(message: types.Message):
-    await message.reply("Halo! Saya bot AI dengan fitur Chat, Translate, Matematika, Kesehatan, dan Edukasi Islam.")
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Chat dengan AI", callback_data="chat")
+    builder.button(text="Lihat Tips Kesehatan", callback_data="tips")
+    builder.button(text="Lihat Jadwal Hijriyah", callback_data="hijri")
+
+    await message.reply(
+        "Halo! Saya bot AI dengan fitur Chat, Translate, Matematika, Kesehatan, dan Edukasi Islam. "
+        "Pilih fitur yang ingin Anda gunakan:",
+        reply_markup=builder.as_markup()
+    )
+
+# Menangani tombol inline
+@dp.callback_query(lambda c: c.data == "chat")
+async def chat_button(callback: types.CallbackQuery):
+    await callback.message.answer("Kirimkan pertanyaanmu untuk memulai percakapan AI.")
+
+@dp.callback_query(lambda c: c.data == "tips")
+async def tips_button(callback: types.CallbackQuery):
+    await callback.message.answer("Ketik /tips untuk mendapatkan tips kesehatan.")
+
+@dp.callback_query(lambda c: c.data == "hijri")
+async def hijri_button(callback: types.CallbackQuery):
+    today = datetime.date.today()
+    hijri = convert.Gregorian(today.year, today.month, today.day).to_hijri()
+    await callback.message.answer(f"📅 Tanggal Hijriyah: {hijri.day}-{hijri.month}-{hijri.year}H")
 
 if __name__ == '__main__':
     import asyncio
