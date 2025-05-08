@@ -26,26 +26,24 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     help_text = (
-        "❤️ *Fitur BucinBot* ❤️\n"
+        "❤️ *bot perwakilan aa😁* ❤️\n"
         "/start - Mulai obrolan\n"
         "/help - Lihat semua fitur\n"
         "/chatbucin - Mode pacar bucin roleplay\n"
         "/stopchat - Keluar dari mode pacar\n"
         "\nFitur spesial:\n"
-        "- Deteksi mood dari pesanmu\n"
-        "- Panggilan khusus dengan respons manja\n"
-        "- Simulasi suasana (seperti hujan, malam, dll)"
+        "- Simulasi suasana  hujan, malam,"
     )
     await update.message.reply_text(help_text, parse_mode="Markdown")
 
 # ===== Chat Bucin Mode =====
 async def chatbucin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["chat_bucin"] = True
-    await update.message.reply_text("💖 Mode pacar bucin diaktifkan! Ketik apa aja ke aku~")
+    await update.message.reply_text("💖 sayangku cintaku duniaku sini cerita aa kangen 🥰😚")
 
 async def stopchat(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["chat_bucin"] = False
-    await update.message.reply_text("💔 Mode pacar bucin dimatikan. Kapan-kapan kita ngobrol lagi yaa...")
+    await update.message.reply_text("pami atos pencet iyeu nya cantik 🥰...")
 
 # ===== Chat Handler =====
 async def handle_chatbucin(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -59,14 +57,14 @@ async def handle_chatbucin(update: Update, context: ContextTypes.DEFAULT_TYPE):
         mood_detected = next((m for m in mood_prompts if m in user_input), None)
 
         # Fitur 2: Panggilan sayang
-        panggilan_khusus = ["sayang", "beb", "ayang", "cinta"]
+        panggilan_khusus = ["sayangku cintaku cantiku🥰😚", "sayang cantik😙", "tayangku😙", "csayangku cintaku duniaku rumahku dosaku 😁"]
         panggilan = next((p for p in panggilan_khusus if p in user_input), None)
 
         # Fitur 3: Simulasi suasana
         if "hujan" in user_input:
-            suasana = "Bayangin kita lagi pelukan sambil dengerin hujan, hangat banget..."
+            suasana = "sayangku cintaku cantiku hyong di peluk 🥰..."
         elif "malam" in user_input:
-            suasana = "Malam ini cuma kamu yang ada di pikiranku. Peluk dari jauh ya... 🥺"
+            suasana = "sayang kangen 😫. Peluk dari jauh ya... 🥺"
         else:
             suasana = None
 
