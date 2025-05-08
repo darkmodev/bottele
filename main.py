@@ -170,15 +170,6 @@ async def main():
     await app.run_polling()
 
 if __name__ == "__main__":
-  import nest_asyncio
+import nest_asyncio
 import asyncio
-
-# Terapkan nest_asyncio untuk menghindari error event loop
-nest_asyncio.apply()
-
-# Jika kamu menggunakan loop langsung
-loop = asyncio.get_event_loop()
-
-# Menjalankan aplikasi tanpa menutup loop
-loop.run_until_complete(main())
 
