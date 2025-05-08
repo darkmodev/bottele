@@ -34,7 +34,7 @@ async def handle_chat(message: types.Message):
     try:
         # Menggunakan OpenRouter GPT-4 untuk mengirimkan pesan
         response = openai.ChatCompletion.create(
-            model="openrouter/openai/gpt-4-turbo",  # Model OpenRouter GPT-4 Turbo
+            model="gpt-4",  # Menggunakan model GPT-4 yang valid
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": message.text}
