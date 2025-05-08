@@ -12,8 +12,8 @@ from telegram.ext import (
 import google.generativeai as genai
 
 # === CONFIGURATION ===
-TELEGRAM_TOKEN = os.getenv("8188514828:AAH08HULWLD1Vynei3YNqru6CelyMXmmK34")
-GEMINI_API_KEY = os.getenv("AIzaSyDHXbT7tTUbvMBB2gExDnJu66A6vxFn6iE")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 LOG_FILE = "chat_log.txt"
 
 # Setup Logging
