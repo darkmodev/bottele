@@ -1,178 +1,109 @@
-import json
 import os
 import logging
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
-import random
+import google.generativeai as genai
+from telegram import Update, ReplyKeyboardMarkup
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
+import asyncio
 import nest_asyncio
 
-# Setup logging
+# Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Path untuk menyimpan data user
-USER_DATA_FILE = "user_data.json"
+# Konfigurasi API
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+GENAI_API_KEY = os.getenv("GENAI_API_KEY")
 
-# Fungsi untuk memuat data dari file JSON
-def load_user_data():
-    if os.path.exists(USER_DATA_FILE):
-        with open(USER_DATA_FILE, 'r') as f:
-            return json.load(f)
-    else:
-        return {}
+genai.configure(api_key=GENAI_API_KEY)
+model = genai.GenerativeModel("gemini-1.5-flash")
 
-# Fungsi untuk menyimpan data ke file JSON
-def save_user_data(user_data):
-    with open(USER_DATA_FILE, 'w') as f:
-        json.dump(user_data, f, indent=4)
-
-# Mendapatkan data user (atau buat baru jika belum ada)
-def get_user_data(user_id):
-    user_data = load_user_data()
-    if str(user_id) not in user_data:
-        user_data[str(user_id)] = {
-            "nama_panggilan": "",
-            "tipe_chat": "manja",  # default tipe chat
-            "mood": "baik",  # default mood
-            "bahasa": "id"  # default bahasa adalah Bahasa Indonesia
-        }
-        save_user_data(user_data)
-    return user_data[str(user_id)]
-
-# Simpan nama panggilan user
-def save_nama_panggilan(user_id, nama_panggilan):
-    user_data = load_user_data()
-    user_data[str(user_id)]["nama_panggilan"] = nama_panggilan
-    save_user_data(user_data)
-
-# Simpan tipe chat user
-def save_tipe_chat(user_id, tipe_chat):
-    user_data = load_user_data()
-    user_data[str(user_id)]["tipe_chat"] = tipe_chat
-    save_user_data(user_data)
-
-# Simpan mood user
-def save_mood(user_id, mood):
-    user_data = load_user_data()
-    user_data[str(user_id)]["mood"] = mood
-    save_user_data(user_data)
-
-# Simpan bahasa user
-def save_bahasa(user_id, bahasa):
-    user_data = load_user_data()
-    user_data[str(user_id)]["bahasa"] = bahasa
-    save_user_data(user_data)
-
-# Fungsi untuk memilih bahasa
-def get_bahasa(user_id):
-    user_data = get_user_data(user_id)
-    return user_data["bahasa"]
-
-# Handler start
+# Start
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Halo! Aku BucinBot 💘\nKetik /help untuk melihat daftar perintah.")
+    await update.message.reply_text(
+        "Halo! Aku BucinBot 💘\n"
+        "Gunakan /chatbucin untuk mulai ngobrol, /bahasa untuk ganti bahasa, dan /help untuk bantuan."
+    )
 
-# Handler /help
-async def help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("""
-    Berikut adalah beberapa perintah yang bisa kamu gunakan:
-    /start - Mulai obrolan
-    /help - Menampilkan daftar perintah
-    /chatbucin - Ngobrol dengan AI pacar
-    /stopchat - Menghentikan mode pacar bucin
-    /setnama - Menyetting nama panggilanmu
-    /settipechat - Menyetting tipe chat (manja, serius, humoris, dll)
-    /setmood - Menyetting mood (baik, buruk, senang, dsb)
-    /setbahasa - Menyetting bahasa yang digunakan (id untuk Bahasa Indonesia, su untuk Bahasa Sunda)
-    """)
+# Help
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "📚 Bantuan Perintah:\n"
+        "/start - Mulai obrolan\n"
+        "/chatbucin - Ngobrol sama AI pacar bucin\n"
+        "/stopchat - Akhiri mode pacar bucin\n"
+        "/bahasa - Pilih bahasa (Indonesia atau Sunda)\n"
+        "/help - Tampilkan bantuan"
+    )
 
-# Handler untuk set bahasa
-async def setbahasa(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Pilih bahasa yang digunakan: id (Bahasa Indonesia) atau su (Bahasa Sunda).")
-    
-    context.user_data["awaiting_bahasa"] = True
+# Pilih Bahasa
+async def bahasa(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [["Indonesia", "Sunda"]]
+    await update.message.reply_text(
+        "Pilih bahasa yang kamu inginkan:",
+        reply_markup=ReplyKeyboardMarkup(keyboard, one_time_keyboard=True, resize_keyboard=True)
+    )
 
-# Handler untuk menerima bahasa
-async def handle_bahasa(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if context.user_data.get("awaiting_bahasa"):
-        bahasa = update.message.text.lower()
-        if bahasa not in ["id", "su"]:
-            await update.message.reply_text("Bahasa yang kamu pilih tidak tersedia. Pilih antara: id (Bahasa Indonesia) atau su (Bahasa Sunda).")
-        else:
-            user_id = update.message.from_user.id
-            save_bahasa(user_id, bahasa)
-            context.user_data["awaiting_bahasa"] = False
-            await update.message.reply_text(f"Bahasa yang kamu pilih sekarang adalah {bahasa}.")
+async def set_bahasa(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.text in ["Indonesia", "Sunda"]:
+        context.user_data["language"] = update.message.text
+        await update.message.reply_text(f"Bahasa diatur ke {update.message.text}!")
 
-# Handler untuk chat bucin
+# Chat Bucin
 async def chatbucin(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.message.from_user.id
-    user_data = get_user_data(user_id)
-    
-    # Mengambil tipe chat dan mood user
-    tipe_chat = user_data["tipe_chat"]
-    mood = user_data["mood"]
-    bahasa = get_bahasa(user_id)
-    
-    # Respons sesuai dengan bahasa
-    if bahasa == "id":
-        if mood == "baik":
-            response = "Aku senang banget bisa ngobrol sama kamu! 💕 Apa kabar?"
-        elif mood == "buruk":
-            response = "Aku bisa bantu buat kamu merasa lebih baik, gimana kalau ngobrolin sesuatu yang menyenangkan?"
-        else:
-            response = "Apa kabar? Aku siap menemanimu 😊"
-        
-        if tipe_chat == "manja":
-            response += " 💖 Aku rindu banget sama kamu~"
-        elif tipe_chat == "serius":
-            response += " Kita harus punya rencana untuk masa depan."
-        elif tipe_chat == "humoris":
-            response += " Hahaha, aku punya banyak cerita lucu untuk kamu! 😂"
-        elif tipe_chat == "cuek tapi perhatian":
-            response += " Aku cuma pengen tahu kamu baik-baik aja, nggak lebih."
-        elif tipe_chat == "penyayang":
-            response += " Aku selalu sayang sama kamu, jangan ragu buat cerita yaa~"
-    
-    elif bahasa == "su":
-        if mood == "baik":
-            response = "Senang pisan bisa ngobrol sareng anjeun! 💕 Kumaha kabarna?"
-        elif mood == "buruk":
-            response = "Kuring tiasa ngabantosan supados anjeun ngarasa langkung saé, kumaha upami ngobrolkeun hal anu pikabungaheun?"
-        else:
-            response = "Kumaha kabarna? Kuring siap ngiringan anjeun 😊"
-        
-        if tipe_chat == "manja":
-            response += " 💖 Kuring sono pisan ka anjeun~"
-        elif tipe_chat == "serius":
-            response += " Urang kedah gaduh rencana pikeun masa depan."
-        elif tipe_chat == "humoris":
-            response += " Hahaha, kuring gaduh seueur carita lucu pikeun anjeun! 😂"
-        elif tipe_chat == "cuek tapi perhatian":
-            response += " Kuring ngan ukur hoyong terang yén anjeun saé, henteu langkung."
-        elif tipe_chat == "penyayang":
-            response += " Kuring sok bogoh ka anjeun, ulah ragu pikeun carita yaa~"
-    
-    await update.message.reply_text(response)
+    context.user_data["chat_bucin"] = True
+    context.user_data["tipe"] = "manja"  # default tipe
+    await update.message.reply_text(
+        "💖 Mode pacar bucin diaktifkan!\n"
+        "Ketik apa aja ke aku~\n"
+        "Kamu bisa ganti karakter pacarku nanti (manja, serius, humoris, cuek, penyayang, mesum)"
+    )
 
-# Main bot
+# Stop Chat
+async def stopchat(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["chat_bucin"] = False
+    await update.message.reply_text("💔 Mode pacar bucin dimatikan. Sampai jumpa lagi yaa~")
+
+# Chat Handler
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if context.user_data.get("chat_bucin"):
+        pesan = update.message.text
+        tipe = context.user_data.get("tipe", "manja")
+        bahasa = context.user_data.get("language", "Indonesia")
+
+        if bahasa == "Sunda":
+            prompt = f"Jieun obrolan pacar bucin nu gaya {tipe} kana pesen ieu: '{pesan}' dina Basa Sunda."
+        else:
+            prompt = f"Balas sebagai pacar {tipe} terhadap pesan ini: '{pesan}' dalam gaya romantis dan bucin."
+
+        try:
+            response = await model.generate_content_async(prompt)
+            await update.message.reply_text(response.text.strip())
+        except Exception as e:
+            logger.error(e)
+            await update.message.reply_text("Lagi error nih sayang 😢")
+    elif update.message.text in ["Indonesia", "Sunda"]:
+        await set_bahasa(update, context)
+
+# Setup
 async def main():
-    app = ApplicationBuilder().token("YOUR_BOT_TOKEN").build()
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("help", help))
+    app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("chatbucin", chatbucin))
-    app.add_handler(CommandHandler("setbahasa", setbahasa))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_bahasa))
+    app.add_handler(CommandHandler("stopchat", stopchat))
+    app.add_handler(CommandHandler("bahasa", bahasa))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("Bot berjalan...")
-
     await app.run_polling()
 
 if __name__ == "__main__":
-    import asyncio
-    import nest_asyncio
-
     nest_asyncio.apply()
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(main())
+    asyncio.run(main())
