@@ -76,7 +76,12 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if context.user_data.get("chat_bucin"):
         pesan = update.message.text
         tipe = context.user_data.get("tipe", "manja")
-        prompt = f"Balas sebagai pacar {tipe} terhadap pesan ini: '{pesan}' dalam gaya romantis dan bucin."
+        prompt = (
+    f"Kamu adalah pacar yang {tipe}, sedang ngobrol dengan kekasihmu melalui chat. "
+    f"Balas pesan ini: '{pesan}' dengan gaya bucin yang romantis, manja, tulus, dan mengalir seperti percakapan nyata. "
+    f"Jangan gunakan daftar, jangan beri nomor atau opsi. Balasanmu harus terdengar alami, emosional, dan penuh perasaan. "
+    f"Gunakan gaya bahasa pacaran yang bikin pasangan meleleh, dan tambahkan emoji jika perlu agar terasa lebih hangat."
+)
 
         try:
             response = await model.generate_content_async(prompt)
