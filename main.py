@@ -30,7 +30,7 @@ LOVE_QUOTES = [
     "Cinta itu bukan tentang memiliki, tapi menghargai. 💞",
     "Aku nggak butuh alasan untuk mencintaimu. Kamu cukup jadi kamu. ❤️",
     "Jarak bukan masalah kalau hati tetap dekat. ✨",
-    "Kalau aku harus memilih antara napas dan kamu, aku akan pilih kamu. Karena kamu adalah hidupku. 🫶",
+    "Kalau aku harus memilih antara napas dan kamu, aku akan pilih kamu. Karena kamu adalah hidupku. ��",
 ]
 
 # Handler untuk perintah /start
@@ -98,7 +98,7 @@ async def handle_love_letter_topic(update: Update, context: ContextTypes.DEFAULT
             await update.message.reply_text(letter)
         except Exception as e:
             logger.error(e)
-            await update.message.reply_text("Maaf, AI gagal bikin suratnya 😢 Coba lagi ya!")
+            await update.message.reply_text("Maaf, AI gagal bikin suratnya 😥 Coba lagi ya!")
 
 # Handler untuk menangani input tema puisi
 async def handle_puisi_topic(update: Update, context: ContextTypes.DEFAULT_TYPE):
